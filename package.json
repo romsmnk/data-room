@@ -1,0 +1,17 @@
+{
+  "name": "data-room",
+  "private": true,
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @data-room/web dev",
+    "dev:api": "pnpm --filter @data-room/api start:dev",
+    "build": "pnpm --filter @data-room/shared build && pnpm --filter @data-room/api build && pnpm --filter @data-room/web build",
+    "lint": "pnpm -r lint"
+  },
+  "packageManager": "pnpm@10.24.0",
+  "pnpm": {
+    "onlyBuiltDependencies": ["@nestjs/core", "@prisma/client", "@prisma/engines", "prisma", "esbuild"]
+  }
+}

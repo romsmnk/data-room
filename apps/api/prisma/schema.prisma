@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Supabase: pooled connection for the app, direct connection for migrations.
+  directUrl = env("DIRECT_URL")
+}
+
+enum ResourceType {
+  DATA_ROOM
+  FOLDER
+  FILE
+}
+
+enum ShareRole {
+  VIEWER
+  EDITOR
+}
+
+enum GrantType {
+  PUBLIC_LINK
+  USER
+}
+
+/// Mirrors the relevant subset of Supabase auth.users, kept in sync lazily
+/// (upserted on first authenticated request) so we can hold normal FKs to it.
+model User {
+  id        String   @id
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  dataRooms     DataRoom[]
+  folders       Folder[]
+  files         File[]
+  sharesOwned   Share[]    @relation("ShareOwner")
+  sharesGranted Share[]    @relation("ShareGrantee")
+}
+
+model DataRoom {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  folders Folder[]
+  files   File[]
+
+  @@index([ownerId])
+}
+
+model Folder {
+  id         String   @id @default(uuid())
+  name       String
+  parentId   String?
+  parent     Folder?  @relation("FolderChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children   Folder[] @relation("FolderChildren")
+  dataRoomId String
+  dataRoom   DataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  ownerId    String
+  owner      User     @relation(fields: [ownerId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  files File[]
+
+  @@unique([parentId, name])
+  @@index([dataRoomId])
+  @@index([ownerId])
+}
+
+model File {
+  id         String   @id @default(uuid())
+  name       String
+  folderId   String?
+  folder     Folder?  @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  dataRoomId String
+  dataRoom   DataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  ownerId    String
+  owner      User     @relation(fields: [ownerId], references: [id])
+  storageKey String
+  sizeBytes  Int
+  mimeType   String
+  version    Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([folderId, name])
+  @@index([dataRoomId])
+  @@index([ownerId])
+}
+
+/// Polymorphic, resource-based grant. One row = one grant of `role` on
+/// (resourceType, resourceId) to either a specific user (GrantType.USER) or
+/// anyone with the link (GrantType.PUBLIC_LINK). Revocation is a soft delete
+/// (revokedAt) so history/audit is preserved.
+model Share {
+  id           String       @id @default(uuid())
+  resourceType ResourceType
+  resourceId   String
+  ownerId      String
+  owner        User         @relation("ShareOwner", fields: [ownerId], references: [id])
+  grantType    GrantType
+  granteeUserId String?
+  grantee      User?        @relation("ShareGrantee", fields: [granteeUserId], references: [id])
+  granteeEmail String?
+  token        String?      @unique
+  role         ShareRole    @default(VIEWER)
+  createdAt    DateTime     @default(now())
+  revokedAt    DateTime?
+
+  @@index([resourceType, resourceId])
+  @@index([granteeUserId])
+  @@index([granteeEmail])
+}
