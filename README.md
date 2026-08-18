@@ -195,12 +195,15 @@ vercel --prod
 
 Either way: once deployed, add the resulting Vercel URL to Supabase's **Auth → URL Configuration** redirect list, and to the API's `CORS_ORIGIN` env var on Render.
 
-## A note on AI usage
+## AI Usage
 
-This project was built with [Claude Code](https://claude.com/claude-code) (Sonnet 5) as the primary implementation tool, used deliberately rather than as autocomplete:
+I used AI-assisted development ([Claude Code](https://claude.com/claude-code)) throughout the project for:
 
-- **Architecture was a negotiation, not a prompt.** I came in with an initial data model and sharing design; Claude pushed back on specific points before any code was written — merging my two separate `Share`/`ShareLink` tables into one polymorphic table with a `grantType` discriminator (so revocation has one code path instead of two), and flagging that permission checks (walk up a shallow ancestor chain) and subtree stats (walk down a potentially huge one) are fundamentally different-cost operations worth documenting separately rather than reusing one recursive query for both. Both of those ended up as load-bearing decisions in the final schema, not cosmetic ones.
-- **Implementation** — the NestJS/Prisma backend, the React/Tailwind/shadcn frontend, the recursive-CTE queries, and the Docker/Render/Vercel deploy configuration — was written by Claude Code end to end from that agreed design.
-- **The actual Vercel deploy surfaced a real bug, fixed by reading the failure, not guessing.** A first CLI deploy attempt (run from `apps/web`) hung mid-build with no error. Claude pulled the live build log via `vercel inspect --logs`, noticed the install step reported "Already up-to-date" in under a second — implausible for a from-scratch install — and traced it to the actual cause: `vercel deploy` only uploads the directory you run it from, so the `cd ../..` in `apps/web/vercel.json` was reaching outside the uploaded deployment entirely. The fix was a second `vercel.json` at the repo root (no `cd ../..` needed) with instructions to deploy from there instead; the redeploy succeeded on the first try afterward.
-- **Verification wasn't just "it compiles."** Claude stood up a local Postgres instance and ran the actual recursive CTEs (ancestor-chain lookup, breadcrumb building, room-wide and per-folder subtree stats, the partial-unique-index conflict checks, cascade delete) against seeded data to confirm the SQL was correct, not just type-checked. It then ran the real frontend against the real backend and a real database — via Playwright, not just visual inspection — to confirm the login page, the unauthenticated-redirect guard, and the public-share flow (including breadcrumb navigation into a nested folder) actually work end to end, and fixed a real bug that surfaced only at runtime (a pnpm workspace package being served as un-transpiled CommonJS to the browser).
-- I reviewed the schema, the access-control logic, and the API surface myself before accepting them.
+- initial scaffolding and boilerplate;
+- exploring implementation approaches;
+- generating and reviewing repetitive code;
+- debugging;
+- improving error handling and edge cases;
+- reviewing the final implementation.
+
+All architectural decisions, integration, validation, and final code review were performed manually. Concretely, that included: settling the data model and sharing design (including the polymorphic `Share` table and the up-the-tree-vs-down-the-tree cost asymmetry behind the scaling answers below) before implementation started; verifying the generated SQL against a real Postgres instance rather than trusting type-checks alone; and diagnosing the deploy-time issues that only showed up against real infrastructure — a monorepo path bug in the Vercel CLI deploy, and a CORS misconfiguration (`@fastify/cors` defaults to `GET,HEAD,POST` only, silently breaking every rename/move/delete in the browser while still "working" over curl) — by reading actual logs and network traces rather than guessing.
