@@ -21,6 +21,10 @@ async function bootstrap() {
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(",") ?? true,
+    // @fastify/cors defaults to GET,HEAD,POST only — without this, every
+    // PATCH/DELETE call (rename, move, delete) fails preflight in real
+    // browsers while still "succeeding" over curl, which never enforces CORS.
+    methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true,
   });
 
