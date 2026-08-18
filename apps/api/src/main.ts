@@ -12,7 +12,10 @@ async function bootstrap() {
     new FastifyAdapter({ bodyLimit: 1024 * 1024 * 1024 }), // 1GB, actual per-file cap enforced in FilesService
   );
 
-  await app.register(multipart, {
+  // @fastify/multipart resolves its own nested `fastify` peer copy under pnpm,
+  // which structurally duplicates (but doesn't functionally differ from) the
+  // one used by @nestjs/platform-fastify — hence the cast, not a real mismatch.
+  await app.register(multipart as never, {
     limits: { fileSize: 200 * 1024 * 1024 }, // 200MB per file
   });
 

@@ -2,7 +2,7 @@
   "name": "data-room",
   "private": true,
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22"
   },
   "scripts": {
     "dev:web": "pnpm --filter @data-room/web dev",
@@ -18,6 +18,9 @@
       "@prisma/engines",
       "prisma",
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "fastify": "5.11.3"
+    }
   }
 }

@@ -135,7 +135,7 @@ packages/
 
 ### Prerequisites
 
-- Node.js 22+, [pnpm](https://pnpm.io) 10+
+- Node.js 22+, [pnpm](https://pnpm.io) 10+ (`.nvmrc` is included if you use nvm: `nvm use`)
 - A free [Supabase](https://supabase.com) project
 
 ### 1. Supabase project
