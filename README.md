@@ -3,7 +3,7 @@
 A secure virtual data room for due diligence — folders, files, and read-only sharing, built as a full-stack MVP.
 
 **Live demo:** [data-room-nu.vercel.app](https://data-room-nu.vercel.app)
-**API:** _backend URL — fill in after deploying to Render_
+**API:** [data-room-1g2l.onrender.com](https://data-room-1g2l.onrender.com)
 
 ## Tech stack
 
